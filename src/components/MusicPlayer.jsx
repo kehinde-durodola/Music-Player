@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
 import { Play, Pause, SkipForward, SkipBack } from "lucide-react";
 import Button from "../components/Button";
+import Equalizer from "../components/Equalizer";
 
 const MusicPlayer = () => {
   const [songs, setSongs] = useState([]);
@@ -9,18 +9,22 @@ const MusicPlayer = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [volume, setVolume] = useState(1); // volume from 0 to 1
+  const [volume, setVolume] = useState(1);
+  const [loading, setLoading] = useState(true);
   const audioRef = React.useRef(null);
 
   useEffect(() => {
     const fetchSongs = async () => {
       try {
-        const response = await axios.get(
+        const response = await fetch(
           "https://robo-music-api.onrender.com/music/my-api"
         );
-        setSongs(response.data);
+        const data = await response.json();
+        setSongs(data);
       } catch (err) {
         console.error("Error fetching songs:", err);
+      } finally {
+        setLoading(false);
       }
     };
     fetchSongs();
@@ -82,7 +86,8 @@ const MusicPlayer = () => {
   };
 
   return (
-    <div className="w-full min-h-screen bg-gray-900 text-white flex flex-col items-center p-4">
+    <div className="w-full min-h-screen bg-gray-900 text-white flex flex-col items-center p-4 relative">
+      {loading && <Equalizer isLoading={loading} />}
       <div className="absolute top-4 w-full text-center">
         <h1 className="text-3xl font-bold text-gray-300">Music Player</h1>
       </div>
@@ -96,9 +101,19 @@ const MusicPlayer = () => {
         {songs.map((song) => (
           <div
             key={song.songUrl}
-            className="relative p-4 bg-gray-800 rounded-lg hover:bg-[#303030] cursor-pointer group"
+            className={`relative p-4 rounded-lg group transition-all ${
+              currentSong?.songUrl === song.songUrl
+                ? "bg-[#303030]"
+                : "bg-gray-800 hover:bg-[#303030]"
+            }`}
           >
-            <div className="absolute inset-0 bg-[#404040] opacity-0 group-hover:opacity-80 transition-all rounded-lg"></div>
+            <div
+              className={`absolute inset-0 transition-all rounded-lg ${
+                currentSong?.songUrl === song.songUrl
+                  ? "opacity-80 bg-[#404040]"
+                  : "opacity-0 group-hover:opacity-80"
+              }`}
+            ></div>
             <div className="flex justify-between items-center">
               <div className="text-left">
                 <h3 className="font-semibold text-lg sm:text-xl text-white">
@@ -114,7 +129,7 @@ const MusicPlayer = () => {
                 className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg"
               />
             </div>
-            <div className="absolute top-1/2 right-4 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all">
+            <div className="absolute top-1/2 right-4 transform -translate-y-1/2 transition-all opacity-0 group-hover:opacity-100">
               <Button onClick={() => togglePlayPause(song)}>
                 {currentSong?.songUrl === song.songUrl && isPlaying ? (
                   <Pause />
